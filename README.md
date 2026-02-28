@@ -113,7 +113,7 @@ All language roles install via the **standard version manager** for that ecosyst
 
 | Role | Manager | What it installs |
 |---|---|---|
-| **nvm** | [nvm](https://github.com/nvm-sh/nvm) | Node.js (default: latest LTS) |
+| **nvm** | [nvm](https://github.com/nvm-sh/nvm) | Node.js (default: latest LTS via `--lts`) |
 | **pyenv** | [pyenv](https://github.com/pyenv/pyenv) | Python (default: 3.13) |
 | **gvm** | [gvm](https://github.com/moovweb/gvm) | Go (default: go1.23.6) |
 | **phpenv** | [phpenv](https://github.com/phpenv/phpenv) | PHP (default: 8.4.4) |

@@ -23,7 +23,11 @@
   shell: |
     export NVM_DIR="{{ '~' + target_user }}/.nvm"
     . "$NVM_DIR/nvm.sh"
-    nvm ls {{ nodejs_version }} 2>/dev/null | grep -q '{{ nodejs_version }}'
+    if [ "{{ nodejs_version }}" = "--lts" ]; then
+      nvm ls --no-colors lts/* 2>/dev/null | grep -qv 'N/A'
+    else
+      nvm ls {{ nodejs_version }} 2>/dev/null | grep -q '{{ nodejs_version }}'
+    fi
   args:
     executable: /bin/bash
   become: true
