@@ -1,7 +1,17 @@
 ---
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
 - name: Check if nvm is already installed
   stat:
-    path: "{{ '~' + target_user }}/.nvm/nvm.sh"
+    path: "{{ target_user_home }}/.nvm/nvm.sh"
   register: nvm_dir
 
 - name: Download nvm install script
@@ -16,12 +26,12 @@
   become: true
   become_user: "{{ target_user }}"
   environment:
-    HOME: "{{ '~' + target_user }}"
+    HOME: "{{ target_user_home }}"
   when: not nvm_dir.stat.exists
 
 - name: Check if Node.js version is already installed
   shell: |
-    export NVM_DIR="{{ '~' + target_user }}/.nvm"
+    export NVM_DIR="{{ target_user_home }}/.nvm"
     . "$NVM_DIR/nvm.sh"
     if [ "{{ nodejs_version }}" = "--lts" ]; then
       nvm ls --no-colors lts/* 2>/dev/null | grep -qv 'N/A'
@@ -38,7 +48,7 @@
 
 - name: Install Node.js via nvm
   shell: |
-    export NVM_DIR="{{ '~' + target_user }}/.nvm"
+    export NVM_DIR="{{ target_user_home }}/.nvm"
     . "$NVM_DIR/nvm.sh"
     nvm install {{ nodejs_version }}
   args:

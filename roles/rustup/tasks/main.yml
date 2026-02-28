@@ -8,9 +8,19 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
 - name: Check if rustup is already installed
   stat:
-    path: "{{ '~' + target_user }}/.cargo/bin/rustup"
+    path: "{{ target_user_home }}/.cargo/bin/rustup"
   register: rustup_check
 
 - name: Download rustup installer
@@ -25,7 +35,7 @@
   become: true
   become_user: "{{ target_user }}"
   environment:
-    HOME: "{{ '~' + target_user }}"
+    HOME: "{{ target_user_home }}"
   when: not rustup_check.stat.exists
 
 - name: Clean up install script

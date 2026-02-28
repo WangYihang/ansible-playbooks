@@ -14,9 +14,19 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
 - name: Check if gvm is already installed
   stat:
-    path: "{{ '~' + target_user }}/.gvm/scripts/gvm"
+    path: "{{ target_user_home }}/.gvm/scripts/gvm"
   register: gvm_dir
 
 - name: Download gvm install script
@@ -30,11 +40,13 @@
   shell: bash /tmp/install_gvm.sh
   become: true
   become_user: "{{ target_user }}"
+  environment:
+    HOME: "{{ target_user_home }}"
   when: not gvm_dir.stat.exists
 
 - name: Check if Go version is already installed
   shell: |
-    source {{ '~' + target_user }}/.gvm/scripts/gvm
+    source {{ target_user_home }}/.gvm/scripts/gvm
     gvm list | grep -q '{{ go_version }}'
   args:
     executable: /bin/bash
@@ -46,7 +58,7 @@
 
 - name: Install Go version via gvm (bootstrap with system go)
   shell: |
-    source {{ '~' + target_user }}/.gvm/scripts/gvm
+    source {{ target_user_home }}/.gvm/scripts/gvm
     gvm install {{ go_version }} -B
     gvm use {{ go_version }} --default
   args:

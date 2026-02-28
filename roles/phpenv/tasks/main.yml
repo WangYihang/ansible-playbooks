@@ -26,15 +26,25 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
 - name: Check if phpenv is already installed
   stat:
-    path: "{{ '~' + target_user }}/.phpenv/bin/phpenv"
+    path: "{{ target_user_home }}/.phpenv/bin/phpenv"
   register: phpenv_dir
 
 - name: Clone phpenv repository
   git:
     repo: https://github.com/phpenv/phpenv.git
-    dest: "{{ '~' + target_user }}/.phpenv"
+    dest: "{{ target_user_home }}/.phpenv"
   become: true
   become_user: "{{ target_user }}"
   when: not phpenv_dir.stat.exists
@@ -42,14 +52,14 @@
 - name: Clone php-build plugin
   git:
     repo: https://github.com/php-build/php-build.git
-    dest: "{{ '~' + target_user }}/.phpenv/plugins/php-build"
+    dest: "{{ target_user_home }}/.phpenv/plugins/php-build"
   become: true
   become_user: "{{ target_user }}"
   when: not phpenv_dir.stat.exists
 
 - name: Add phpenv to shell profile
   blockinfile:
-    path: "{{ '~' + target_user }}/.bashrc"
+    path: "{{ target_user_home }}/.bashrc"
     marker: "# {mark} ANSIBLE MANAGED - phpenv"
     block: |
       export PHPENV_ROOT="$HOME/.phpenv"
@@ -60,12 +70,12 @@
 
 - name: Check if zshrc exists
   stat:
-    path: "{{ '~' + target_user }}/.zshrc"
+    path: "{{ target_user_home }}/.zshrc"
   register: phpenv_zshrc
 
 - name: Add phpenv to zsh profile (if zsh exists)
   blockinfile:
-    path: "{{ '~' + target_user }}/.zshrc"
+    path: "{{ target_user_home }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED - phpenv"
     block: |
       export PHPENV_ROOT="$HOME/.phpenv"
@@ -77,7 +87,7 @@
 
 - name: Install PHP version via phpenv
   shell: |
-    export PHPENV_ROOT="{{ '~' + target_user }}/.phpenv"
+    export PHPENV_ROOT="{{ target_user_home }}/.phpenv"
     export PATH="$PHPENV_ROOT/bin:$PATH"
     eval "$(phpenv init -)"
     phpenv install -s {{ php_version }}
