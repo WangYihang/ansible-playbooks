@@ -13,11 +13,24 @@
 
 - name: Install nvm
   shell: bash /tmp/install_nvm.sh
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
   environment:
     HOME: "{{ '~' + target_user }}"
   when: not nvm_dir.stat.exists
+
+- name: Check if Node.js version is already installed
+  shell: |
+    export NVM_DIR="{{ '~' + target_user }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
+    nvm ls {{ nodejs_version }} 2>/dev/null | grep -q '{{ nodejs_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: nodejs_installed
+  changed_when: false
+  failed_when: false
 
 - name: Install Node.js via nvm
   shell: |
@@ -26,8 +39,9 @@
     nvm install {{ nodejs_version }}
   args:
     executable: /bin/bash
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
+  when: nodejs_installed.rc != 0
 
 - name: Clean up install script
   file:

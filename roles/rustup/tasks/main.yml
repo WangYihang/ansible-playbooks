@@ -5,7 +5,8 @@
       - curl
       - build-essential
     state: present
-    update_cache: yes
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Check if rustup is already installed
   stat:
@@ -21,7 +22,7 @@
 
 - name: Install rustup (with stable toolchain)
   shell: sh /tmp/install_rustup.sh -y
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
   environment:
     HOME: "{{ '~' + target_user }}"

@@ -11,7 +11,8 @@
       - gcc
       - build-essential
     state: present
-    update_cache: yes
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Check if gvm is already installed
   stat:
@@ -27,9 +28,21 @@
 
 - name: Install gvm
   shell: bash /tmp/install_gvm.sh
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
   when: not gvm_dir.stat.exists
+
+- name: Check if Go version is already installed
+  shell: |
+    source {{ '~' + target_user }}/.gvm/scripts/gvm
+    gvm list | grep -q '{{ go_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: go_installed
+  changed_when: false
+  failed_when: false
 
 - name: Install Go version via gvm (bootstrap with system go)
   shell: |
@@ -38,8 +51,9 @@
     gvm use {{ go_version }} --default
   args:
     executable: /bin/bash
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
+  when: go_installed.rc != 0
 
 - name: Clean up install script
   file:

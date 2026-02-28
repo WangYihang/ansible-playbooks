@@ -10,7 +10,6 @@
     url: https://dl.cloudsmith.io/public/caddy/stable/gpg.key
     dest: /etc/apt/keyrings/caddy-stable.asc
     mode: '0644'
-    force: yes
 
 - name: Add Caddy stable repository
   apt_repository:
@@ -22,10 +21,12 @@
   apt:
     name: caddy
     state: present
-    update_cache: yes
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Ensure Caddy service is running
-  service:
+  systemd:
     name: caddy
     state: started
-    enabled: yes
+    enabled: true
+    daemon_reload: true

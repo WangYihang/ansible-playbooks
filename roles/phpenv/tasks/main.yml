@@ -23,7 +23,8 @@
       - bison
       - pkg-config
     state: present
-    update_cache: yes
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: Check if phpenv is already installed
   stat:
@@ -34,7 +35,7 @@
   git:
     repo: https://github.com/phpenv/phpenv.git
     dest: "{{ '~' + target_user }}/.phpenv"
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
   when: not phpenv_dir.stat.exists
 
@@ -42,7 +43,7 @@
   git:
     repo: https://github.com/php-build/php-build.git
     dest: "{{ '~' + target_user }}/.phpenv/plugins/php-build"
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
   when: not phpenv_dir.stat.exists
 
@@ -54,8 +55,13 @@
       export PHPENV_ROOT="$HOME/.phpenv"
       [[ -d $PHPENV_ROOT/bin ]] && export PATH="$PHPENV_ROOT/bin:$PATH"
       eval "$(phpenv init -)"
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
+
+- name: Check if zshrc exists
+  stat:
+    path: "{{ '~' + target_user }}/.zshrc"
+  register: phpenv_zshrc
 
 - name: Add phpenv to zsh profile (if zsh exists)
   blockinfile:
@@ -65,9 +71,9 @@
       export PHPENV_ROOT="$HOME/.phpenv"
       [[ -d $PHPENV_ROOT/bin ]] && export PATH="$PHPENV_ROOT/bin:$PATH"
       eval "$(phpenv init -)"
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
-  ignore_errors: yes
+  when: phpenv_zshrc.stat.exists
 
 - name: Install PHP version via phpenv
   shell: |
@@ -78,5 +84,5 @@
     phpenv global {{ php_version }}
   args:
     executable: /bin/bash
-  become: yes
+  become: true
   become_user: "{{ target_user }}"
