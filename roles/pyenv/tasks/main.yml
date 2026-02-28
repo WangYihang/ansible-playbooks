@@ -1,0 +1,72 @@
+---
+- name: Install pyenv build dependencies
+  apt:
+    name:
+      - make
+      - build-essential
+      - libssl-dev
+      - zlib1g-dev
+      - libbz2-dev
+      - libreadline-dev
+      - libsqlite3-dev
+      - wget
+      - curl
+      - llvm
+      - libncursesw5-dev
+      - xz-utils
+      - tk-dev
+      - libxml2-dev
+      - libxmlsec1-dev
+      - libffi-dev
+      - liblzma-dev
+    state: present
+    update_cache: yes
+
+- name: Check if pyenv is already installed
+  stat:
+    path: "{{ '~' + target_user }}/.pyenv/bin/pyenv"
+  register: pyenv_dir
+
+- name: Clone pyenv repository
+  git:
+    repo: https://github.com/pyenv/pyenv.git
+    dest: "{{ '~' + target_user }}/.pyenv"
+    version: "{{ pyenv_version }}"
+  become: yes
+  become_user: "{{ target_user }}"
+  when: not pyenv_dir.stat.exists
+
+- name: Add pyenv to shell profile
+  blockinfile:
+    path: "{{ '~' + target_user }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED - pyenv"
+    block: |
+      export PYENV_ROOT="$HOME/.pyenv"
+      [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+      eval "$(pyenv init -)"
+  become: yes
+  become_user: "{{ target_user }}"
+
+- name: Add pyenv to zsh profile (if zsh exists)
+  blockinfile:
+    path: "{{ '~' + target_user }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED - pyenv"
+    block: |
+      export PYENV_ROOT="$HOME/.pyenv"
+      [[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+      eval "$(pyenv init -)"
+  become: yes
+  become_user: "{{ target_user }}"
+  ignore_errors: yes
+
+- name: Install Python version via pyenv
+  shell: |
+    export PYENV_ROOT="{{ '~' + target_user }}/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init -)"
+    pyenv install -s {{ python_version }}
+    pyenv global {{ python_version }}
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: "{{ target_user }}"

@@ -1,0 +1,6 @@
+---
+- name: Install Rust (rustup)
+  hosts: all
+  become: yes
+  roles:
+    - rustup

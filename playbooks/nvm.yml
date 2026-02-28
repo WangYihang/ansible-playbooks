@@ -1,0 +1,6 @@
+---
+- name: Install Node.js (nvm)
+  hosts: all
+  become: yes
+  roles:
+    - nvm

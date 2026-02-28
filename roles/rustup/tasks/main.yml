@@ -1,0 +1,33 @@
+---
+- name: Install rustup build dependencies
+  apt:
+    name:
+      - curl
+      - build-essential
+    state: present
+    update_cache: yes
+
+- name: Check if rustup is already installed
+  stat:
+    path: "{{ '~' + target_user }}/.cargo/bin/rustup"
+  register: rustup_check
+
+- name: Download rustup installer
+  get_url:
+    url: https://sh.rustup.rs
+    dest: /tmp/install_rustup.sh
+    mode: '0755'
+  when: not rustup_check.stat.exists
+
+- name: Install rustup (with stable toolchain)
+  shell: sh /tmp/install_rustup.sh -y
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "{{ '~' + target_user }}"
+  when: not rustup_check.stat.exists
+
+- name: Clean up install script
+  file:
+    path: /tmp/install_rustup.sh
+    state: absent

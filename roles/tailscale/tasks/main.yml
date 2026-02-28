@@ -1,0 +1,28 @@
+---
+- name: Check if Tailscale is already installed
+  command: which tailscale
+  register: tailscale_check
+  changed_when: false
+  failed_when: false
+
+- name: Download Tailscale install script
+  get_url:
+    url: https://tailscale.com/install.sh
+    dest: /tmp/install_tailscale.sh
+    mode: '0755'
+  when: tailscale_check.rc != 0
+
+- name: Run Tailscale install script
+  shell: sh /tmp/install_tailscale.sh
+  when: tailscale_check.rc != 0
+
+- name: Ensure Tailscale service is running
+  service:
+    name: tailscaled
+    state: started
+    enabled: yes
+
+- name: Clean up install script
+  file:
+    path: /tmp/install_tailscale.sh
+    state: absent

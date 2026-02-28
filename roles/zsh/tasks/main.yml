@@ -1,0 +1,23 @@
+---
+- name: Check if Oh My Zsh is already installed
+  stat:
+    path: "~/.oh-my-zsh"
+  register: oh_my_zsh_dir
+
+- name: Download Oh My Zsh installation script
+  get_url:
+    url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
+    dest: /tmp/install_ohmyzsh.sh
+    mode: '0755'
+  when: not oh_my_zsh_dir.stat.exists
+
+- name: Run Oh My Zsh installation (unattended)
+  shell: sh /tmp/install_ohmyzsh.sh --unattended
+  become: yes
+  become_user: "{{ target_user }}"
+  when: not oh_my_zsh_dir.stat.exists
+
+- name: Change default shell to zsh
+  user:
+    name: "{{ target_user }}"
+    shell: /bin/zsh

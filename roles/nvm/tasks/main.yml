@@ -1,0 +1,35 @@
+---
+- name: Check if nvm is already installed
+  stat:
+    path: "{{ '~' + target_user }}/.nvm/nvm.sh"
+  register: nvm_dir
+
+- name: Download nvm install script
+  get_url:
+    url: "https://raw.githubusercontent.com/nvm-sh/nvm/{{ nvm_version }}/install.sh"
+    dest: /tmp/install_nvm.sh
+    mode: '0755'
+  when: not nvm_dir.stat.exists
+
+- name: Install nvm
+  shell: bash /tmp/install_nvm.sh
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "{{ '~' + target_user }}"
+  when: not nvm_dir.stat.exists
+
+- name: Install Node.js via nvm
+  shell: |
+    export NVM_DIR="{{ '~' + target_user }}/.nvm"
+    . "$NVM_DIR/nvm.sh"
+    nvm install {{ nodejs_version }}
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: "{{ target_user }}"
+
+- name: Clean up install script
+  file:
+    path: /tmp/install_nvm.sh
+    state: absent

@@ -1,0 +1,6 @@
+---
+- name: Install Python (pyenv)
+  hosts: all
+  become: yes
+  roles:
+    - pyenv

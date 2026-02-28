@@ -1,0 +1,82 @@
+---
+- name: Install phpenv build dependencies
+  apt:
+    name:
+      - curl
+      - git
+      - make
+      - build-essential
+      - libssl-dev
+      - zlib1g-dev
+      - libbz2-dev
+      - libreadline-dev
+      - libsqlite3-dev
+      - libxml2-dev
+      - libcurl4-openssl-dev
+      - libonig-dev
+      - libzip-dev
+      - libpng-dev
+      - libjpeg-dev
+      - libfreetype6-dev
+      - re2c
+      - autoconf
+      - bison
+      - pkg-config
+    state: present
+    update_cache: yes
+
+- name: Check if phpenv is already installed
+  stat:
+    path: "{{ '~' + target_user }}/.phpenv/bin/phpenv"
+  register: phpenv_dir
+
+- name: Clone phpenv repository
+  git:
+    repo: https://github.com/phpenv/phpenv.git
+    dest: "{{ '~' + target_user }}/.phpenv"
+  become: yes
+  become_user: "{{ target_user }}"
+  when: not phpenv_dir.stat.exists
+
+- name: Clone php-build plugin
+  git:
+    repo: https://github.com/php-build/php-build.git
+    dest: "{{ '~' + target_user }}/.phpenv/plugins/php-build"
+  become: yes
+  become_user: "{{ target_user }}"
+  when: not phpenv_dir.stat.exists
+
+- name: Add phpenv to shell profile
+  blockinfile:
+    path: "{{ '~' + target_user }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED - phpenv"
+    block: |
+      export PHPENV_ROOT="$HOME/.phpenv"
+      [[ -d $PHPENV_ROOT/bin ]] && export PATH="$PHPENV_ROOT/bin:$PATH"
+      eval "$(phpenv init -)"
+  become: yes
+  become_user: "{{ target_user }}"
+
+- name: Add phpenv to zsh profile (if zsh exists)
+  blockinfile:
+    path: "{{ '~' + target_user }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED - phpenv"
+    block: |
+      export PHPENV_ROOT="$HOME/.phpenv"
+      [[ -d $PHPENV_ROOT/bin ]] && export PATH="$PHPENV_ROOT/bin:$PATH"
+      eval "$(phpenv init -)"
+  become: yes
+  become_user: "{{ target_user }}"
+  ignore_errors: yes
+
+- name: Install PHP version via phpenv
+  shell: |
+    export PHPENV_ROOT="{{ '~' + target_user }}/.phpenv"
+    export PATH="$PHPENV_ROOT/bin:$PATH"
+    eval "$(phpenv init -)"
+    phpenv install -s {{ php_version }}
+    phpenv global {{ php_version }}
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: "{{ target_user }}"

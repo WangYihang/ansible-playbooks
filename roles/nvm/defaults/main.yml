@@ -1,0 +1,4 @@
+---
+target_user: "{{ ansible_user | default(ansible_facts['user_id']) }}"
+nvm_version: "v0.40.1"
+nodejs_version: "node"  # "node" = latest LTS, or specify like "22"

@@ -1,0 +1,14 @@
+# Inventory files (may contain real IPs and credentials)
+inventory/*.ini
+!inventory/*.example
+*.retry
+
+# Editor
+*.swp
+*.swo
+*~
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

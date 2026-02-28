@@ -1,0 +1,4 @@
+---
+target_user: "{{ ansible_user | default(ansible_facts['user_id']) }}"
+pyenv_version: "v2.5.0"
+python_version: "3.13"  # version to install via pyenv

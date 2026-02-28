@@ -1,0 +1,47 @@
+---
+- name: Install gvm dependencies
+  apt:
+    name:
+      - curl
+      - git
+      - mercurial
+      - make
+      - binutils
+      - bison
+      - gcc
+      - build-essential
+    state: present
+    update_cache: yes
+
+- name: Check if gvm is already installed
+  stat:
+    path: "{{ '~' + target_user }}/.gvm/scripts/gvm"
+  register: gvm_dir
+
+- name: Download gvm install script
+  get_url:
+    url: https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer
+    dest: /tmp/install_gvm.sh
+    mode: '0755'
+  when: not gvm_dir.stat.exists
+
+- name: Install gvm
+  shell: bash /tmp/install_gvm.sh
+  become: yes
+  become_user: "{{ target_user }}"
+  when: not gvm_dir.stat.exists
+
+- name: Install Go version via gvm (bootstrap with system go)
+  shell: |
+    source {{ '~' + target_user }}/.gvm/scripts/gvm
+    gvm install {{ go_version }} -B
+    gvm use {{ go_version }} --default
+  args:
+    executable: /bin/bash
+  become: yes
+  become_user: "{{ target_user }}"
+
+- name: Clean up install script
+  file:
+    path: /tmp/install_gvm.sh
+    state: absent

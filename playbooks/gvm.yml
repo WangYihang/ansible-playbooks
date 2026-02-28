@@ -1,0 +1,6 @@
+---
+- name: Install Go (gvm)
+  hosts: all
+  become: yes
+  roles:
+    - gvm
