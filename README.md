@@ -104,7 +104,7 @@ If you have Ansible installed globally, replace `uvx --from ansible-core ansible
 | **common** | Update & upgrade apt, install essential packages (`git`, `curl`, `wget`, `vim`, `tmux`, etc.), cleanup |
 | **docker** | Add Docker official GPG key & repo, install Docker CE/CLI/Compose/Buildx, handle LXC AppArmor, add user to docker group |
 | **caddy** | Add Caddy official repo, install and enable Caddy web server |
-| **tailscale** | Install Tailscale via official script, enable `tailscaled` service |
+| **tailscale** | Add Tailscale official apt repo, install packages, configure IP forwarding & ethtool optimisations, enable `tailscaled` service, run `tailscale up` |
 | **zsh** | Install Oh My Zsh (unattended), set Zsh as default shell |
 
 ### Language Version Managers
@@ -135,6 +135,15 @@ uvx --from ansible-core ansible-playbook playbooks/gvm.yml -e 'go_version=go1.22
 
 # Override target user
 uvx --from ansible-core ansible-playbook playbooks/docker.yml -e 'target_user=myuser'
+
+# Tailscale with custom subnet routes
+uvx --from ansible-core ansible-playbook playbooks/tailscale.yml -e 'tailscale_advertise_routes=10.0.0.0/24'
+
+# Tailscale with auth key (unattended login)
+uvx --from ansible-core ansible-playbook playbooks/tailscale.yml -e 'tailscale_auth_key=tskey-auth-xxxxx'
+
+# Tailscale without exit node
+uvx --from ansible-core ansible-playbook playbooks/tailscale.yml -e 'tailscale_advertise_exit_node=false'
 ```
 
 ## License
