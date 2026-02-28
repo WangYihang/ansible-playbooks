@@ -92,6 +92,7 @@
     eval "$(phpenv init -)"
     phpenv install -s {{ php_version }}
     phpenv global {{ php_version }}
+    phpenv rehash
   args:
     executable: /bin/bash
   become: true
