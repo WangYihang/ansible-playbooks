@@ -1,28 +1,119 @@
 ---
-- name: Check if Tailscale is already installed
-  command: which tailscale
-  register: tailscale_check
+# ── Preflight ────────────────────────────────────────────────
+- name: Ensure distro is supported
+  assert:
+    that:
+      - ansible_facts['distribution'] | lower in ['ubuntu', 'debian']
+    fail_msg: "Tailscale role currently supports Ubuntu/Debian only"
+
+- name: Check TUN device availability
+  stat:
+    path: /dev/net/tun
+  register: tailscale_tun_device
+
+- name: Fail when TUN device is missing
+  fail:
+    msg: >-
+      /dev/net/tun is missing. tailscaled cannot start without it.
+      Run: sudo apt install linux-modules-extra-$(uname -r) && sudo modprobe tun
+  when: not tailscale_tun_device.stat.exists
+
+# ── Install ──────────────────────────────────────────────────
+- name: Ensure Tailscale keyring directory exists
+  file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download Tailscale archive key
+  get_url:
+    url: "https://pkgs.tailscale.com/stable/{{ 'ubuntu' if ansible_facts['distribution'] | lower == 'ubuntu' else 'debian' }}/{{ ansible_facts['distribution_release'] }}.noarmor.gpg"
+    dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+    mode: '0644'
+
+- name: Download Tailscale apt source list
+  get_url:
+    url: "https://pkgs.tailscale.com/stable/{{ 'ubuntu' if ansible_facts['distribution'] | lower == 'ubuntu' else 'debian' }}/{{ ansible_facts['distribution_release'] }}.tailscale-keyring.list"
+    dest: /etc/apt/sources.list.d/tailscale.list
+    mode: '0644'
+
+- name: Install Tailscale packages
+  apt:
+    name:
+      - tailscale
+      - tailscale-archive-keyring
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+# ── IP forwarding (subnet router / exit node) ───────────────
+- name: Enable IP forwarding via sysctl
+  sysctl:
+    name: "{{ item }}"
+    value: '1'
+    sysctl_file: /etc/sysctl.d/99-tailscale.conf
+    reload: true
+    state: present
+  loop:
+    - net.ipv4.ip_forward
+    - net.ipv6.conf.all.forwarding
+  when: tailscale_ip_forward
+
+# ── ethtool UDP GRO optimisation ────────────────────────────
+- name: Detect default network interface
+  shell: ip -o route get 8.8.8.8 | cut -f 5 -d " "
+  register: tailscale_default_netdev
+  changed_when: false
+  when: tailscale_ethtool_optimise
+
+- name: Apply ethtool optimisations now
+  command: ethtool -K {{ tailscale_default_netdev.stdout }} rx-udp-gro-forwarding on rx-gro-list off
+  changed_when: true
+  when: tailscale_ethtool_optimise
+
+- name: Persist ethtool optimisations via networkd-dispatcher
+  copy:
+    dest: /etc/networkd-dispatcher/routable.d/50-tailscale
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      ethtool -K {{ tailscale_default_netdev.stdout }} rx-udp-gro-forwarding on rx-gro-list off
+  when: tailscale_ethtool_optimise
+
+# ── Service ──────────────────────────────────────────────────
+- name: Ensure Tailscale service is running
+  systemd:
+    name: tailscaled
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# ── tailscale up ─────────────────────────────────────────────
+- name: Check current Tailscale status
+  command: tailscale status --json
+  register: tailscale_status
   changed_when: false
   failed_when: false
 
-- name: Download Tailscale install script
-  get_url:
-    url: https://tailscale.com/install.sh
-    dest: /tmp/install_tailscale.sh
-    mode: '0755'
-  when: tailscale_check.rc != 0
+- name: Build tailscale up command
+  set_fact:
+    tailscale_up_cmd: >-
+      tailscale up
+      {{ '--accept-routes' if tailscale_accept_routes else '' }}
+      {{ '--advertise-exit-node' if tailscale_advertise_exit_node else '' }}
+      {{ '--advertise-routes=' + tailscale_advertise_routes if tailscale_advertise_routes else '' }}
+      {{ '--auth-key=' + tailscale_auth_key if tailscale_auth_key else '' }}
 
-- name: Run Tailscale install script
-  shell: sh /tmp/install_tailscale.sh
-  when: tailscale_check.rc != 0
+- name: Run tailscale up (may require interactive auth if no auth key)
+  command: "{{ tailscale_up_cmd }}"
+  when: >
+    tailscale_status.rc != 0 or
+    (tailscale_status.stdout | from_json).BackendState | default('') != 'Running'
+  register: tailscale_up_result
+  changed_when: tailscale_up_result.rc == 0
+  failed_when: false
 
-- name: Ensure Tailscale service is running
-  service:
-    name: tailscaled
-    state: started
-    enabled: yes
-
-- name: Clean up install script
-  file:
-    path: /tmp/install_tailscale.sh
-    state: absent
+- name: Show tailscale up output
+  debug:
+    msg: "{{ tailscale_up_result.stdout_lines | default([]) + tailscale_up_result.stderr_lines | default([]) }}"
+  when: tailscale_up_result is changed or tailscale_up_result.rc | default(0) != 0

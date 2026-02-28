@@ -1,0 +1,14 @@
+---
+# tailscale up flags
+tailscale_accept_routes: true
+tailscale_advertise_exit_node: true
+tailscale_advertise_routes: "192.168.202.0/24"
+
+# Auth key for unattended login (leave empty for interactive browser auth)
+tailscale_auth_key: ""
+
+# IP forwarding (required for subnet routing / exit node)
+tailscale_ip_forward: true
+
+# ethtool UDP GRO optimisation for better throughput
+tailscale_ethtool_optimise: true
