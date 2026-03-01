@@ -11,8 +11,15 @@ openwrt_tailscale_accept_routes: true
 openwrt_tailscale_advertise_exit_node: false
 openwrt_tailscale_advertise_routes: ""
 
-# Auth key for unattended login (leave empty for interactive browser auth)
-openwrt_tailscale_auth_key: ""
+# IP forwarding (required for subnet routing / exit node)
+openwrt_tailscale_ip_forward: true
+
+# Firewall: allow inbound Tailscale UDP port through WAN
+openwrt_tailscale_firewall: true
+openwrt_tailscale_port: 41641
+
+# Use userspace networking (set to false if kmod-tun is installed for better performance)
+openwrt_tailscale_userspace_networking: true
 
 # Download base URL
 openwrt_tailscale_base_url: "https://pkgs.tailscale.com/stable"

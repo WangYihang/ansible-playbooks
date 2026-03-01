@@ -3,9 +3,8 @@
 - name: Ensure target is OpenWrt
   assert:
     that:
-      - ansible_facts['distribution'] | lower == 'openwrt'
-        or ansible_facts['os_family'] | lower == 'openwrt'
-        or (ansible_facts['distribution'] | default('') == '' and 'openwrt' in (ansible_facts['kernel'] | default('') | lower))
+      - ansible_facts['os_family'] | default('') | lower == 'openwrt'
+        or ansible_facts['distribution'] | default('') | lower == 'openwrt'
     fail_msg: "This role is designed for OpenWrt only"
   tags: [preflight]
 
@@ -13,23 +12,18 @@
 - name: Map architecture to Tailscale arch string
   set_fact:
     _ts_arch: >-
-      {%- if openwrt_tailscale_arch != '' -%}
-        {{ openwrt_tailscale_arch }}
-      {%- elif ansible_architecture == 'x86_64' -%}
-        amd64
-      {%- elif ansible_architecture == 'aarch64' -%}
-        arm64
-      {%- elif ansible_architecture in ['armv7l', 'armhf'] -%}
-        arm
-      {%- elif ansible_architecture == 'mips' -%}
-        mips
-      {%- elif ansible_architecture in ['mipsel', 'mips64el'] -%}
-        mipsle
-      {%- elif ansible_architecture == 'riscv64' -%}
-        riscv64
-      {%- else -%}
-        {{ ansible_architecture }}
-      {%- endif -%}
+      {{ openwrt_tailscale_arch
+         | default(_ts_arch_map[ansible_architecture] | default(ansible_architecture), true) }}
+  vars:
+    _ts_arch_map:
+      x86_64: amd64
+      aarch64: arm64
+      armv7l: arm
+      armhf: arm
+      mips: mips
+      mipsel: mipsle
+      mips64el: mipsle
+      riscv64: riscv64
   tags: [install]
 
 - name: Set tarball filename and URL
@@ -56,23 +50,23 @@
 
 # ── Download and install ─────────────────────────────────────
 - name: Create temp directory
-  tempfile:
+  file:
+    path: /tmp/tailscale-install
     state: directory
-    suffix: tailscale
-  register: _ts_tmpdir
+    mode: '0755'
   when: _ts_needs_install | bool
   tags: [install]
 
 - name: Download Tailscale static tarball
   get_url:
     url: "{{ _ts_url }}"
-    dest: "{{ _ts_tmpdir.path }}/{{ _ts_tarball }}"
+    dest: "/tmp/tailscale-install/{{ _ts_tarball }}"
     mode: '0644'
   when: _ts_needs_install | bool
   tags: [install]
 
 - name: Extract tarball
-  command: tar xzf {{ _ts_tmpdir.path }}/{{ _ts_tarball }} -C {{ _ts_tmpdir.path }}
+  command: tar xzf /tmp/tailscale-install/{{ _ts_tarball }} -C /tmp/tailscale-install
   when: _ts_needs_install | bool
   tags: [install]
 
@@ -84,7 +78,7 @@
 
 - name: Install tailscale binary
   copy:
-    src: "{{ _ts_tmpdir.path }}/{{ _ts_extract_dir }}/tailscale"
+    src: "/tmp/tailscale-install/{{ _ts_extract_dir }}/tailscale"
     dest: "{{ openwrt_tailscale_bin_dir }}/tailscale"
     mode: '0755'
     remote_src: true
@@ -93,7 +87,7 @@
 
 - name: Install tailscaled binary
   copy:
-    src: "{{ _ts_tmpdir.path }}/{{ _ts_extract_dir }}/tailscaled"
+    src: "/tmp/tailscale-install/{{ _ts_extract_dir }}/tailscaled"
     dest: "{{ openwrt_tailscale_sbin_dir }}/tailscaled"
     mode: '0755'
     remote_src: true
@@ -102,10 +96,57 @@
 
 - name: Clean up temp directory
   file:
-    path: "{{ _ts_tmpdir.path }}"
+    path: /tmp/tailscale-install
     state: absent
   when: _ts_needs_install | bool
   tags: [install]
+
+# ── IP forwarding (subnet router / exit node) ───────────────
+- name: Enable IPv4 forwarding
+  shell: |
+    sysctl -w net.ipv4.ip_forward=1
+    grep -q '^net.ipv4.ip_forward' /etc/sysctl.conf 2>/dev/null \
+      && sed -i 's/^net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf \
+      || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+  changed_when: false
+  when: openwrt_tailscale_ip_forward
+  tags: [forwarding]
+
+- name: Enable IPv6 forwarding
+  shell: |
+    sysctl -w net.ipv6.conf.all.forwarding=1
+    grep -q '^net.ipv6.conf.all.forwarding' /etc/sysctl.conf 2>/dev/null \
+      && sed -i 's/^net.ipv6.conf.all.forwarding.*/net.ipv6.conf.all.forwarding=1/' /etc/sysctl.conf \
+      || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
+  changed_when: false
+  when: openwrt_tailscale_ip_forward
+  tags: [forwarding]
+
+# NOTE: ethtool UDP GRO optimisation is skipped on OpenWrt.
+# Most OpenWrt devices use network drivers that do not support
+# rx-udp-gro-forwarding, and ethtool is usually not available.
+
+# ── Firewall ─────────────────────────────────────────────────
+- name: Check if Tailscale firewall rule already exists
+  shell: uci show firewall | grep "name='Allow-Tailscale'"
+  register: _ts_fw_check
+  changed_when: false
+  failed_when: false
+  when: openwrt_tailscale_firewall
+  tags: [firewall]
+
+- name: Add Tailscale firewall rule
+  shell: |
+    uci add firewall rule
+    uci set firewall.@rule[-1].name='Allow-Tailscale'
+    uci set firewall.@rule[-1].src='wan'
+    uci set firewall.@rule[-1].proto='udp'
+    uci set firewall.@rule[-1].dest_port='{{ openwrt_tailscale_port }}'
+    uci set firewall.@rule[-1].target='ACCEPT'
+    uci commit firewall
+  when: openwrt_tailscale_firewall and _ts_fw_check.rc != 0
+  notify: Restart firewall on openwrt
+  tags: [firewall]
 
 # ── Init script ──────────────────────────────────────────────
 - name: Deploy OpenWrt init script for tailscale
@@ -127,14 +168,15 @@
         procd_set_param command {{ openwrt_tailscale_sbin_dir }}/tailscaled
 
         # Set the port to listen on for incoming VPN packets.
-        # 0 means tailscale will use a random port.
-        procd_append_param command --port 0
+        procd_append_param command --port {{ openwrt_tailscale_port }}
 
         # Persist state across reboots
         procd_append_param command --state {{ openwrt_tailscale_state_dir }}/tailscaled.state
+      {% if openwrt_tailscale_userspace_networking %}
 
         # OpenWrt uses its own firewall, use userspace networking
         procd_append_param command --tun userspace-networking
+      {% endif %}
 
         procd_set_param respawn
         procd_set_param stdout 1
@@ -155,36 +197,39 @@
   changed_when: false
   tags: [service]
 
-- name: Start tailscale service
-  command: /etc/init.d/tailscale start
+- name: Ensure tailscale service is running
+  shell: |
+    if /etc/init.d/tailscale status 2>&1 | grep -q 'running'; then
+      echo 'already running'
+    else
+      /etc/init.d/tailscale start
+      echo 'started'
+    fi
   register: _ts_start_result
-  changed_when: "'already running' not in (_ts_start_result.stderr | default(''))"
-  failed_when: false
-  when: _ts_needs_install | bool
+  changed_when: "'started' in _ts_start_result.stdout"
   tags: [service]
 
 - name: Wait for tailscaled to be ready
   command: tailscale status --json
-  register: _ts_wait
+  register: _ts_status
   retries: 10
   delay: 2
-  until: _ts_wait.rc == 0
+  until: _ts_status.rc == 0
   changed_when: false
   failed_when: false
   tags: [service]
 
 # ── tailscale up (only if already authenticated) ─────────────
-- name: Check current Tailscale backend state
-  command: tailscale status --json
-  register: _ts_status
-  changed_when: false
-  failed_when: false
+- name: Determine authentication state
+  set_fact:
+    _ts_backend_state: "{{ (_ts_status.stdout | from_json).BackendState | default('') }}"
+  when: _ts_status.rc == 0
   tags: [connect]
 
-- name: Set authentication state
+- name: Set authentication state (daemon not ready)
   set_fact:
-    _ts_is_running: "{{ (_ts_status.rc == 0) and ((_ts_status.stdout | from_json).BackendState | default('') == 'Running') }}"
-    _ts_needs_login: "{{ (_ts_status.rc != 0) or ((_ts_status.stdout | from_json).BackendState | default('') == 'NeedsLogin') }}"
+    _ts_backend_state: "Unknown"
+  when: _ts_status.rc != 0
   tags: [connect]
 
 - name: Build tailscale up command
@@ -194,12 +239,12 @@
       {{ '--accept-routes' if openwrt_tailscale_accept_routes else '' }}
       {{ '--advertise-exit-node' if openwrt_tailscale_advertise_exit_node else '' }}
       {{ '--advertise-routes=' + openwrt_tailscale_advertise_routes if openwrt_tailscale_advertise_routes else '' }}
-  when: not _ts_is_running | bool
+  when: _ts_backend_state != 'Running'
   tags: [connect]
 
 - name: Run tailscale up (already authenticated)
   command: "{{ _ts_up_cmd }}"
-  when: not _ts_is_running | bool and not _ts_needs_login | bool
+  when: _ts_backend_state not in ['Running', 'NeedsLogin', 'Unknown']
   register: _ts_up_result
   changed_when: _ts_up_result.rc == 0
   failed_when: false
@@ -208,7 +253,7 @@
 - name: Show tailscale up output
   debug:
     msg: "{{ _ts_up_result.stdout_lines | default([]) + _ts_up_result.stderr_lines | default([]) }}"
-  when: _ts_up_result is defined and (_ts_up_result is changed or (_ts_up_result.rc | default(0)) != 0)
+  when: _ts_up_result is defined and _ts_up_result is not skipped and (_ts_up_result is changed or (_ts_up_result.rc | default(0)) != 0)
   tags: [connect]
 
 - name: Notify user — first-time authentication required
@@ -217,7 +262,7 @@
       Tailscale is not authenticated yet. Please SSH into the router and run:
         tailscale up
       Then follow the URL to complete authentication in your browser.
-  when: _ts_needs_login | bool
+  when: _ts_backend_state == 'NeedsLogin'
   tags: [connect]
 
 # ── Verify ───────────────────────────────────────────────────
