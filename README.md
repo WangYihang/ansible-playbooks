@@ -40,6 +40,7 @@ Each role installs the standard version manager for its ecosystem, per-user:
 |---|---|---|
 | `nvm.yml` | [nvm](https://github.com/nvm-sh/nvm) | Node.js LTS |
 | `pyenv.yml` | [pyenv](https://github.com/pyenv/pyenv) | Python 3.13 |
+| `uv.yml` | [uv](https://docs.astral.sh/uv/) | Python (uv as manager) |
 | `gvm.yml` | [gvm](https://github.com/moovweb/gvm) | Go 1.23.6 |
 | `phpenv.yml` | [phpenv](https://github.com/phpenv/phpenv) | PHP 8.4.4 |
 | `rustup.yml` | [rustup](https://rustup.rs/) | Rust stable |
@@ -55,6 +56,7 @@ Override defaults via `-e`:
 ```bash
 uvx --from ansible-core ansible-playbook playbooks/nvm.yml -e 'nodejs_version=20'
 uvx --from ansible-core ansible-playbook playbooks/pyenv.yml -e 'python_version=3.12'
+uvx --from ansible-core ansible-playbook playbooks/uv.yml -e 'uv_python_version=3.12'
 uvx --from ansible-core ansible-playbook playbooks/gvm.yml -e 'go_version=go1.22.4'
 uvx --from ansible-core ansible-playbook playbooks/zsh.yml -e 'zsh_theme=agnoster'
 uvx --from ansible-core ansible-playbook playbooks/docker.yml -e 'docker_add_user_to_group=true'

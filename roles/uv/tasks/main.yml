@@ -1,0 +1,48 @@
+---
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
+- name: Check if uv is already installed
+  stat:
+    path: "{{ target_user_home }}/.local/bin/uv"
+  register: uv_bin
+
+- name: Install uv
+  shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "{{ target_user_home }}"
+  when: not uv_bin.stat.exists
+
+- name: Check if Python version is already installed via uv
+  shell: |
+    export PATH="{{ target_user_home }}/.local/bin:$PATH"
+    uv python list --only-installed | grep -q '{{ uv_python_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: uv_python_installed
+  changed_when: false
+  failed_when: false
+  when: uv_python_version | length > 0
+
+- name: Install Python version via uv
+  shell: |
+    export PATH="{{ target_user_home }}/.local/bin:$PATH"
+    uv python install {{ uv_python_version }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  when: uv_python_version | length > 0 and uv_python_installed.rc != 0

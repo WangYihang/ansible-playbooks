@@ -9,6 +9,7 @@
 - import_playbook: playbooks/caddy.yml
 - import_playbook: playbooks/nvm.yml
 - import_playbook: playbooks/pyenv.yml
+- import_playbook: playbooks/uv.yml
 - import_playbook: playbooks/gvm.yml
 - import_playbook: playbooks/phpenv.yml
 - import_playbook: playbooks/rustup.yml

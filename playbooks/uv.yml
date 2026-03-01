@@ -1,0 +1,6 @@
+---
+- name: Install uv (Python package manager)
+  hosts: all
+  become: true
+  roles:
+    - uv
