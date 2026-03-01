@@ -34,6 +34,14 @@
     path: /tmp/install_ohmyzsh.sh
     state: absent
 
+- name: Set Oh My Zsh theme
+  lineinfile:
+    path: "{{ target_user_home }}/.zshrc"
+    regexp: '^ZSH_THEME='
+    line: 'ZSH_THEME="{{ zsh_theme }}"'
+  become: true
+  become_user: "{{ target_user }}"
+
 - name: Change default shell to zsh
   user:
     name: "{{ target_user }}"
