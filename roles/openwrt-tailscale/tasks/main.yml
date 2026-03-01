@@ -173,12 +173,18 @@
   failed_when: false
   tags: [service]
 
-# ── tailscale up ─────────────────────────────────────────────
-- name: Check current Tailscale status
+# ── tailscale up (only if already authenticated) ─────────────
+- name: Check current Tailscale backend state
   command: tailscale status --json
   register: _ts_status
   changed_when: false
   failed_when: false
+  tags: [connect]
+
+- name: Set authentication state
+  set_fact:
+    _ts_is_running: "{{ (_ts_status.rc == 0) and ((_ts_status.stdout | from_json).BackendState | default('') == 'Running') }}"
+    _ts_needs_login: "{{ (_ts_status.rc != 0) or ((_ts_status.stdout | from_json).BackendState | default('') == 'NeedsLogin') }}"
   tags: [connect]
 
 - name: Build tailscale up command
@@ -188,14 +194,12 @@
       {{ '--accept-routes' if openwrt_tailscale_accept_routes else '' }}
       {{ '--advertise-exit-node' if openwrt_tailscale_advertise_exit_node else '' }}
       {{ '--advertise-routes=' + openwrt_tailscale_advertise_routes if openwrt_tailscale_advertise_routes else '' }}
-      {{ '--auth-key=' + openwrt_tailscale_auth_key if openwrt_tailscale_auth_key else '' }}
+  when: not _ts_is_running | bool
   tags: [connect]
 
-- name: Run tailscale up
+- name: Run tailscale up (already authenticated)
   command: "{{ _ts_up_cmd }}"
-  when: >
-    _ts_status.rc != 0 or
-    (_ts_status.stdout | from_json).BackendState | default('') != 'Running'
+  when: not _ts_is_running | bool and not _ts_needs_login | bool
   register: _ts_up_result
   changed_when: _ts_up_result.rc == 0
   failed_when: false
@@ -204,7 +208,16 @@
 - name: Show tailscale up output
   debug:
     msg: "{{ _ts_up_result.stdout_lines | default([]) + _ts_up_result.stderr_lines | default([]) }}"
-  when: _ts_up_result is changed or (_ts_up_result.rc | default(0)) != 0
+  when: _ts_up_result is defined and (_ts_up_result is changed or (_ts_up_result.rc | default(0)) != 0)
+  tags: [connect]
+
+- name: Notify user — first-time authentication required
+  debug:
+    msg: >-
+      Tailscale is not authenticated yet. Please SSH into the router and run:
+        tailscale up
+      Then follow the URL to complete authentication in your browser.
+  when: _ts_needs_login | bool
   tags: [connect]
 
 # ── Verify ───────────────────────────────────────────────────
