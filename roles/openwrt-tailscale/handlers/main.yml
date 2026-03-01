@@ -1,6 +1,0 @@
----
-- name: Restart tailscale on openwrt
-  command: /etc/init.d/tailscale restart
-
-- name: Restart firewall on openwrt
-  command: /etc/init.d/firewall restart
