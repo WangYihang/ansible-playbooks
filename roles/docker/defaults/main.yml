@@ -1,2 +1,3 @@
 ---
 target_user: "{{ ansible_user | default(ansible_facts['user_id']) }}"
+docker_add_user_to_group: false  # add target_user to docker group (run docker without sudo)

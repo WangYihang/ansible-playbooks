@@ -50,3 +50,4 @@
     name: "{{ target_user }}"
     groups: docker
     append: true
+  when: docker_add_user_to_group | bool
