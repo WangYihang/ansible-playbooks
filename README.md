@@ -62,7 +62,3 @@ uvx --from ansible-core ansible-playbook playbooks/tailscale.yml -e 'tailscale_a
 ```
 
 All variables are defined in `roles/<role>/defaults/main.yml`.
-
-## License
-
-[MIT](LICENSE)
