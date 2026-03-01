@@ -15,3 +15,4 @@
 - import_playbook: playbooks/rustup.yml
 - import_playbook: playbooks/sdkman.yml
 - import_playbook: playbooks/rbenv.yml
+- import_playbook: playbooks/openwrt-tailscale.yml

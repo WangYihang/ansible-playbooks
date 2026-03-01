@@ -1,0 +1,25 @@
+---
+# Tailscale version to install
+openwrt_tailscale_version: "1.80.3"
+
+# Architecture mapping: auto-detected from ansible_architecture
+# Override if needed (e.g. mipsle, mips, arm, arm64, amd64)
+openwrt_tailscale_arch: ""
+
+# tailscale up flags
+openwrt_tailscale_accept_routes: true
+openwrt_tailscale_advertise_exit_node: false
+openwrt_tailscale_advertise_routes: ""
+
+# Auth key for unattended login (leave empty for interactive browser auth)
+openwrt_tailscale_auth_key: ""
+
+# Download base URL
+openwrt_tailscale_base_url: "https://pkgs.tailscale.com/stable"
+
+# Installation directory for binaries
+openwrt_tailscale_bin_dir: "/usr/bin"
+openwrt_tailscale_sbin_dir: "/usr/sbin"
+
+# State directory
+openwrt_tailscale_state_dir: "/var/lib/tailscale"

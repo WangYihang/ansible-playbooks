@@ -1,0 +1,7 @@
+---
+- name: Install Tailscale on OpenWrt (static binary)
+  hosts: openwrt
+  gather_facts: true
+  become: false
+  roles:
+    - openwrt-tailscale
