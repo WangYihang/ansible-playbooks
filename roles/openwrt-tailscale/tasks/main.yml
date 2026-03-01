@@ -67,6 +67,8 @@
 
 - name: Extract tarball
   command: tar xzf /tmp/tailscale-install/{{ _ts_tarball }} -C /tmp/tailscale-install
+  args:
+    creates: "/tmp/tailscale-install/{{ _ts_extract_dir }}/tailscale"
   when: _ts_needs_install | bool
   tags: [install]
 
@@ -102,13 +104,28 @@
   tags: [install]
 
 # ── IP forwarding (subnet router / exit node) ───────────────
+- name: Check current IPv4 forwarding
+  command: sysctl -n net.ipv4.ip_forward
+  register: _ts_ipv4_fwd
+  changed_when: false
+  failed_when: false
+  when: openwrt_tailscale_ip_forward
+  tags: [forwarding]
+
 - name: Enable IPv4 forwarding
   shell: |
     sysctl -w net.ipv4.ip_forward=1
     grep -q '^net.ipv4.ip_forward' /etc/sysctl.conf 2>/dev/null \
       && sed -i 's/^net.ipv4.ip_forward.*/net.ipv4.ip_forward=1/' /etc/sysctl.conf \
       || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+  when: openwrt_tailscale_ip_forward and (_ts_ipv4_fwd.stdout | default('') | trim) != '1'
+  tags: [forwarding]
+
+- name: Check current IPv6 forwarding
+  command: sysctl -n net.ipv6.conf.all.forwarding
+  register: _ts_ipv6_fwd
   changed_when: false
+  failed_when: false
   when: openwrt_tailscale_ip_forward
   tags: [forwarding]
 
@@ -118,8 +135,7 @@
     grep -q '^net.ipv6.conf.all.forwarding' /etc/sysctl.conf 2>/dev/null \
       && sed -i 's/^net.ipv6.conf.all.forwarding.*/net.ipv6.conf.all.forwarding=1/' /etc/sysctl.conf \
       || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
-  changed_when: false
-  when: openwrt_tailscale_ip_forward
+  when: openwrt_tailscale_ip_forward and (_ts_ipv6_fwd.stdout | default('') | trim) != '1'
   tags: [forwarding]
 
 # NOTE: ethtool UDP GRO optimisation is skipped on OpenWrt.
@@ -127,6 +143,8 @@
 # rx-udp-gro-forwarding, and ethtool is usually not available.
 
 # ── Firewall ─────────────────────────────────────────────────
+# NOTE: If you change openwrt_tailscale_port after the rule is created,
+# delete the old rule manually: uci delete firewall.@rule[N] && uci commit firewall
 - name: Check if Tailscale firewall rule already exists
   shell: uci show firewall | grep "name='Allow-Tailscale'"
   register: _ts_fw_check
@@ -192,9 +210,16 @@
   tags: [init]
 
 # ── Enable and start ─────────────────────────────────────────
+- name: Check if tailscale init script is enabled
+  shell: ls /etc/rc.d/S*tailscale 2>/dev/null
+  register: _ts_enabled_check
+  changed_when: false
+  failed_when: false
+  tags: [service]
+
 - name: Enable tailscale init script
   command: /etc/init.d/tailscale enable
-  changed_when: false
+  when: _ts_enabled_check.rc != 0
   tags: [service]
 
 - name: Ensure tailscale service is running
