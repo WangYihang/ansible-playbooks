@@ -1,4 +1,11 @@
 ---
+- name: Install zsh
+  apt:
+    name: zsh
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
 - name: Get target user home directory
   getent:
     database: passwd
