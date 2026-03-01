@@ -1,6 +1,6 @@
 ---
 - name: Install PHP (phpenv)
   hosts: all
-  become: yes
+  become: true
   roles:
     - phpenv

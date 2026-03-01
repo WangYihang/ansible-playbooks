@@ -1,6 +1,6 @@
 ---
 - name: Install Zsh and Oh My Zsh
   hosts: all
-  become: yes
+  become: true
   roles:
     - zsh

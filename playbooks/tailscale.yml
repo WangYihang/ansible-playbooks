@@ -1,6 +1,6 @@
 ---
 - name: Install Tailscale
   hosts: all
-  become: yes
+  become: true
   roles:
     - tailscale
