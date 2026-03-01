@@ -87,6 +87,20 @@
   become_user: "{{ target_user }}"
   when: phpenv_zshrc.stat.exists
 
+- name: Check if PHP version is already installed
+  shell: |
+    export PHPENV_ROOT="{{ target_user_home }}/.phpenv"
+    export PATH="$PHPENV_ROOT/bin:$PATH"
+    eval "$(phpenv init -)"
+    phpenv versions --bare | grep -q '^{{ php_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: php_installed
+  changed_when: false
+  failed_when: false
+
 - name: Install PHP version via phpenv
   shell: |
     export PHPENV_ROOT="{{ target_user_home }}/.phpenv"
@@ -99,3 +113,4 @@
     executable: /bin/bash
   become: true
   become_user: "{{ target_user }}"
+  when: php_installed.rc != 0

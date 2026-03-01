@@ -66,10 +66,17 @@
   changed_when: false
   when: tailscale_ethtool_optimise
 
+- name: Check current ethtool settings
+  shell: |
+    ethtool -k {{ tailscale_default_netdev.stdout }} | grep -q 'rx-udp-gro-forwarding: on'
+  register: ethtool_check
+  changed_when: false
+  failed_when: false
+  when: tailscale_ethtool_optimise
+
 - name: Apply ethtool optimisations now
   command: ethtool -K {{ tailscale_default_netdev.stdout }} rx-udp-gro-forwarding on rx-gro-list off
-  changed_when: true
-  when: tailscale_ethtool_optimise
+  when: tailscale_ethtool_optimise and ethtool_check.rc != 0
 
 - name: Persist ethtool optimisations via networkd-dispatcher
   copy:

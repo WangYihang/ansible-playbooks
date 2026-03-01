@@ -80,6 +80,20 @@
   become_user: "{{ target_user }}"
   when: rbenv_zshrc.stat.exists
 
+- name: Check if Ruby version is already installed
+  shell: |
+    export RBENV_ROOT="{{ target_user_home }}/.rbenv"
+    export PATH="$RBENV_ROOT/bin:$PATH"
+    eval "$(rbenv init - bash)"
+    rbenv versions --bare | grep -q '^{{ ruby_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: ruby_installed
+  changed_when: false
+  failed_when: false
+
 - name: Install Ruby version via rbenv
   shell: |
     export RBENV_ROOT="{{ target_user_home }}/.rbenv"
@@ -92,5 +106,4 @@
     executable: /bin/bash
   become: true
   become_user: "{{ target_user }}"
-  register: ruby_install
-  changed_when: "'Installed' in ruby_install.stderr or 'installed' in ruby_install.stdout"
+  when: ruby_installed.rc != 0

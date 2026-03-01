@@ -75,6 +75,20 @@
   become_user: "{{ target_user }}"
   when: pyenv_zshrc.stat.exists
 
+- name: Check if Python version is already installed
+  shell: |
+    export PYENV_ROOT="{{ target_user_home }}/.pyenv"
+    export PATH="$PYENV_ROOT/bin:$PATH"
+    eval "$(pyenv init -)"
+    pyenv versions --bare | grep -q '^{{ python_version }}'
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: python_installed
+  changed_when: false
+  failed_when: false
+
 - name: Install Python version via pyenv
   shell: |
     export PYENV_ROOT="{{ target_user_home }}/.pyenv"
@@ -86,3 +100,4 @@
     executable: /bin/bash
   become: true
   become_user: "{{ target_user }}"
+  when: python_installed.rc != 0
