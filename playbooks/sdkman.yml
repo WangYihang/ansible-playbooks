@@ -1,0 +1,6 @@
+---
+- name: Install Java (sdkman)
+  hosts: all
+  become: yes
+  roles:
+    - sdkman

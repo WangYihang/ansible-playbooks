@@ -1,0 +1,68 @@
+---
+- name: Install sdkman dependencies
+  apt:
+    name:
+      - curl
+      - zip
+      - unzip
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
+- name: Check if sdkman is already installed
+  stat:
+    path: "{{ target_user_home }}/.sdkman/bin/sdkman-init.sh"
+  register: sdkman_dir
+
+- name: Download sdkman install script
+  get_url:
+    url: https://get.sdkman.io
+    dest: /tmp/install_sdkman.sh
+    mode: '0755'
+  when: not sdkman_dir.stat.exists
+
+- name: Install sdkman
+  shell: bash /tmp/install_sdkman.sh
+  become: true
+  become_user: "{{ target_user }}"
+  environment:
+    HOME: "{{ target_user_home }}"
+  when: not sdkman_dir.stat.exists
+
+- name: Clean up sdkman install script
+  file:
+    path: /tmp/install_sdkman.sh
+    state: absent
+
+- name: Check if Java version is already installed
+  shell: |
+    source {{ target_user_home }}/.sdkman/bin/sdkman-init.sh
+    sdk list java | grep -q "{{ java_version }}" && sdk current java 2>/dev/null | grep -q "{{ java_version }}"
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: java_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install Java version via sdkman
+  shell: |
+    source {{ target_user_home }}/.sdkman/bin/sdkman-init.sh
+    sdk install java {{ java_version }}
+    sdk default java {{ java_version }}
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  when: java_installed.rc != 0

@@ -12,3 +12,5 @@
 - import_playbook: playbooks/gvm.yml
 - import_playbook: playbooks/phpenv.yml
 - import_playbook: playbooks/rustup.yml
+- import_playbook: playbooks/sdkman.yml
+- import_playbook: playbooks/rbenv.yml

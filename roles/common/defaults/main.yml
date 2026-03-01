@@ -4,7 +4,9 @@ common_packages:
   - curl
   - wget
   - vim
+  - neovim
   - tmux
+  - ufw
   - unar
   - zsh
   - htop

@@ -1,0 +1,6 @@
+---
+- name: Install Ruby (rbenv)
+  hosts: all
+  become: yes
+  roles:
+    - rbenv

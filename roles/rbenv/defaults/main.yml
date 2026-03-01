@@ -1,0 +1,4 @@
+---
+target_user: "{{ ansible_user | default(ansible_facts['user_id']) }}"
+rbenv_version: "v1.3.0"
+ruby_version: "3.3.7"  # version to install via rbenv

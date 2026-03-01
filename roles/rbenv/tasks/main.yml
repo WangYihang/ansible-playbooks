@@ -1,0 +1,96 @@
+---
+- name: Install rbenv build dependencies
+  apt:
+    name:
+      - curl
+      - git
+      - make
+      - build-essential
+      - libssl-dev
+      - zlib1g-dev
+      - libyaml-dev
+      - libreadline-dev
+      - libncurses5-dev
+      - libffi-dev
+      - libgdbm-dev
+      - autoconf
+      - bison
+      - rustc  # required by YJIT in Ruby 3.2+
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Get target user home directory
+  getent:
+    database: passwd
+    key: "{{ target_user }}"
+  register: target_user_info
+
+- name: Set user home fact
+  set_fact:
+    target_user_home: "{{ target_user_info.ansible_facts.getent_passwd[target_user][4] }}"
+
+- name: Check if rbenv is already installed
+  stat:
+    path: "{{ target_user_home }}/.rbenv/bin/rbenv"
+  register: rbenv_dir
+
+- name: Clone rbenv repository
+  git:
+    repo: https://github.com/rbenv/rbenv.git
+    dest: "{{ target_user_home }}/.rbenv"
+    version: "{{ rbenv_version }}"
+  become: true
+  become_user: "{{ target_user }}"
+  when: not rbenv_dir.stat.exists
+
+- name: Clone ruby-build plugin
+  git:
+    repo: https://github.com/rbenv/ruby-build.git
+    dest: "{{ target_user_home }}/.rbenv/plugins/ruby-build"
+  become: true
+  become_user: "{{ target_user }}"
+  when: not rbenv_dir.stat.exists
+
+- name: Add rbenv to shell profile
+  blockinfile:
+    path: "{{ target_user_home }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED - rbenv"
+    block: |
+      export RBENV_ROOT="$HOME/.rbenv"
+      [[ -d $RBENV_ROOT/bin ]] && export PATH="$RBENV_ROOT/bin:$PATH"
+      eval "$(rbenv init - bash)"
+  become: true
+  become_user: "{{ target_user }}"
+
+- name: Check if zshrc exists
+  stat:
+    path: "{{ target_user_home }}/.zshrc"
+  register: rbenv_zshrc
+
+- name: Add rbenv to zsh profile (if zsh exists)
+  blockinfile:
+    path: "{{ target_user_home }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED - rbenv"
+    block: |
+      export RBENV_ROOT="$HOME/.rbenv"
+      [[ -d $RBENV_ROOT/bin ]] && export PATH="$RBENV_ROOT/bin:$PATH"
+      eval "$(rbenv init - zsh)"
+  become: true
+  become_user: "{{ target_user }}"
+  when: rbenv_zshrc.stat.exists
+
+- name: Install Ruby version via rbenv
+  shell: |
+    export RBENV_ROOT="{{ target_user_home }}/.rbenv"
+    export PATH="$RBENV_ROOT/bin:$PATH"
+    eval "$(rbenv init - bash)"
+    rbenv install -s {{ ruby_version }}
+    rbenv global {{ ruby_version }}
+    rbenv rehash
+  args:
+    executable: /bin/bash
+  become: true
+  become_user: "{{ target_user }}"
+  register: ruby_install
+  changed_when: "'Installed' in ruby_install.stderr or 'installed' in ruby_install.stdout"
