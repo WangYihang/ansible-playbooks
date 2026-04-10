@@ -13,3 +13,4 @@ common_packages:
   - net-tools
   - ca-certificates
   - gnupg
+  - proxychains-ng
