@@ -1,0 +1,6 @@
+---
+- name: Install GitHub CLI
+  hosts: all
+  become: true
+  roles:
+    - gh

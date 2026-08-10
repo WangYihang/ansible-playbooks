@@ -1,8 +1,9 @@
 ---
 # Baseline provisioning for a fresh server, in order:
-#   system update  ->  security hardening  ->  Docker  ->  zsh
+#   system update  ->  security hardening  ->  Docker  ->  zsh  ->  GitHub CLI
 # Usage: ansible-playbook playbooks/server-baseline.yml
 - import_playbook: common.yml
 - import_playbook: hardening.yml
 - import_playbook: docker.yml
 - import_playbook: zsh.yml
+- import_playbook: gh.yml

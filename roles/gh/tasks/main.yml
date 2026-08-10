@@ -1,0 +1,36 @@
+---
+- name: Create directory for apt keyrings
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add GitHub CLI GPG key
+  get_url:
+    url: https://cli.github.com/packages/githubcli-archive-keyring.gpg
+    dest: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+    mode: '0644'
+
+- name: Install python3-debian (required by deb822_repository)
+  apt:
+    name: python3-debian
+    state: present
+
+- name: Add GitHub CLI repository
+  deb822_repository:
+    name: github-cli
+    types: [deb]
+    uris: ["https://cli.github.com/packages"]
+    suites: [stable]
+    components: [main]
+    architectures: [amd64]
+    signed_by: /etc/apt/keyrings/githubcli-archive-keyring.gpg
+
+- name: Update apt cache after adding GitHub CLI repo
+  apt:
+    update_cache: true
+
+- name: Install GitHub CLI
+  apt:
+    name: gh
+    state: present

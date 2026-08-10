@@ -45,6 +45,7 @@ Drop `-K` once you've stored the sudo password in Vault (see [Inventory & secret
 | `caddy.yml` | Caddy web server / reverse proxy |
 | `tailscale.yml` | Tailscale VPN with IP forwarding & exit node support |
 | `zsh.yml` | Zsh + Oh My Zsh, configurable theme |
+| `gh.yml` | GitHub CLI (`gh`) from GitHub's official apt repo |
 
 ### Language Version Managers
 
