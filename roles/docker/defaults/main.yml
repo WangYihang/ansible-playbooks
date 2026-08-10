@@ -1,3 +1,8 @@
 ---
 target_user: "{{ ansible_user | default(ansible_facts['user_id']) }}"
 docker_add_user_to_group: false  # add target_user to docker group (run docker without sudo)
+
+# Codename used for Docker's apt repo. Defaults to the running release, but
+# Docker's repo lags behind brand-new Ubuntu versions (e.g. 26.04), so override
+# this per-host/group to the latest published LTS codename when needed.
+docker_apt_codename: "{{ ansible_facts['distribution_release'] }}"
