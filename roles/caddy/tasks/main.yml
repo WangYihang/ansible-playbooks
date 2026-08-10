@@ -11,11 +11,30 @@
     dest: /etc/apt/keyrings/caddy-stable.asc
     mode: '0644'
 
-- name: Add Caddy stable repository
-  apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/caddy-stable.asc] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main"
+- name: Install python3-debian (required by deb822_repository)
+  apt:
+    name: python3-debian
     state: present
-    filename: caddy-stable
+
+- name: Remove legacy Caddy .list repo (migrated to deb822 .sources)
+  file:
+    path: /etc/apt/sources.list.d/caddy-stable.list
+    state: absent
+
+- name: Add Caddy stable repository
+  deb822_repository:
+    name: caddy-stable
+    types: [deb]
+    uris: ["https://dl.cloudsmith.io/public/caddy/stable/deb/debian"]
+    suites: ["any-version"]
+    components: [main]
+    signed_by: /etc/apt/keyrings/caddy-stable.asc
+
+# Force a refresh here (no cache_valid_time) so the just-added repo is picked up
+# even if an earlier play refreshed the cache <1h ago.
+- name: Update apt cache after adding Caddy repo
+  apt:
+    update_cache: true
 
 - name: Install Caddy
   apt:
