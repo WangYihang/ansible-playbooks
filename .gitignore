@@ -3,6 +3,17 @@ inventory/*.ini
 !inventory/*.example
 *.retry
 
+# Real group/host vars — contain deployment specifics and vault secrets.
+# Only the *.example templates are committed.
+inventory/group_vars/*
+inventory/host_vars/*
+!inventory/group_vars/*.example
+!inventory/host_vars/*.example
+
+# Ansible Vault password files — never commit these
+*vault_pass*
+.vault-password
+
 # Editor
 *.swp
 *.swo

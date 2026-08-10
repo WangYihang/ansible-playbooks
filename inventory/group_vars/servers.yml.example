@@ -1,0 +1,17 @@
+---
+# Shared variables for every host in the [servers] group.
+# Copy to servers.yml (gitignored) and adjust.
+
+# Docker's apt repo lags behind brand-new Ubuntu releases. Pin the repo to the
+# latest published LTS codename when the running release isn't available yet
+# (e.g. Ubuntu 26.04 -> "noble"). Remove once your release is published.
+docker_apt_codename: noble
+
+# --- Hardening (all default to true in roles/hardening; override to opt out) ---
+# harden_ssh: true
+# harden_ufw: true
+# harden_fail2ban: true
+# harden_unattended_upgrades: true
+# harden_sysctl: true
+# Extra firewall ports to open (SSH is always allowed automatically):
+# harden_ufw_allowed_tcp_ports: [80, 443]

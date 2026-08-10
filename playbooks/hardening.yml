@@ -1,0 +1,6 @@
+---
+- name: Security hardening
+  hosts: all
+  become: true
+  roles:
+    - hardening

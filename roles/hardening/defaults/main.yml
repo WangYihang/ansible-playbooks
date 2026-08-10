@@ -1,0 +1,37 @@
+---
+# Each hardening area can be toggled independently. All default to `true` —
+# this is a security role, so it is secure-by-default; opt out per host/group.
+harden_ssh: true
+harden_ufw: true
+harden_fail2ban: true
+harden_unattended_upgrades: true
+harden_sysctl: true
+
+# --- SSH ---
+# Written to a drop-in under /etc/ssh/sshd_config.d/, overriding the distro
+# defaults without editing the main sshd_config.
+harden_ssh_permit_root_login: "no"
+harden_ssh_password_authentication: "no"        # key-only login — verify your key works first!
+harden_ssh_kbd_interactive_authentication: "no"
+harden_ssh_x11_forwarding: "no"
+harden_ssh_max_auth_tries: 4
+harden_ssh_login_grace_time: 30
+harden_ssh_client_alive_interval: 300
+harden_ssh_client_alive_count_max: 2
+# Extra raw sshd directives appended verbatim, e.g. ["AllowUsers ubuntu deploy"].
+harden_ssh_extra_config: []
+
+# --- Firewall (ufw) ---
+# The active SSH port (ansible_port) is ALWAYS allowed automatically, so a run
+# can never lock you out. List any additional service ports below.
+harden_ufw_allowed_tcp_ports: []   # e.g. [80, 443]
+harden_ufw_allowed_udp_ports: []
+
+# --- fail2ban ---
+harden_fail2ban_bantime: "1h"
+harden_fail2ban_findtime: "10m"
+harden_fail2ban_maxretry: 5
+
+# --- Automatic security updates (unattended-upgrades) ---
+harden_auto_upgrades_reboot: false
+harden_auto_upgrades_reboot_time: "03:00"

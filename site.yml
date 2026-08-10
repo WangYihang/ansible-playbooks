@@ -3,6 +3,7 @@
 # Usage: ansible-playbook -i inventory/hosts.ini site.yml
 
 - import_playbook: playbooks/common.yml
+- import_playbook: playbooks/hardening.yml
 - import_playbook: playbooks/docker.yml
 - import_playbook: playbooks/zsh.yml
 - import_playbook: playbooks/tailscale.yml
@@ -15,4 +16,3 @@
 - import_playbook: playbooks/rustup.yml
 - import_playbook: playbooks/sdkman.yml
 - import_playbook: playbooks/rbenv.yml
-- import_playbook: playbooks/openwrt-tailscale.yml

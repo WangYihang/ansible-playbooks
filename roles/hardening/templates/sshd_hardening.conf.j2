@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+# SSH hardening — managed by the 'hardening' role. This drop-in overrides the
+# main sshd_config via its Include of /etc/ssh/sshd_config.d/*.conf.
+PermitRootLogin {{ harden_ssh_permit_root_login }}
+PasswordAuthentication {{ harden_ssh_password_authentication }}
+KbdInteractiveAuthentication {{ harden_ssh_kbd_interactive_authentication }}
+X11Forwarding {{ harden_ssh_x11_forwarding }}
+MaxAuthTries {{ harden_ssh_max_auth_tries }}
+LoginGraceTime {{ harden_ssh_login_grace_time }}
+ClientAliveInterval {{ harden_ssh_client_alive_interval }}
+ClientAliveCountMax {{ harden_ssh_client_alive_count_max }}
+{% for line in harden_ssh_extra_config %}
+{{ line }}
+{% endfor %}

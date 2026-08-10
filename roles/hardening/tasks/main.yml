@@ -1,0 +1,124 @@
+---
+# ---------------------------------------------------------------------------
+# SSH hardening
+# ---------------------------------------------------------------------------
+- name: SSH | Deploy hardening drop-in
+  template:
+    src: sshd_hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: "/usr/sbin/sshd -t -f %s"
+  when: harden_ssh | bool
+  notify: Restart ssh
+
+# ---------------------------------------------------------------------------
+# Firewall (ufw). Allow SSH BEFORE enabling deny-incoming to avoid lockout.
+# ---------------------------------------------------------------------------
+- name: UFW | Allow the active SSH port (prevents lockout)
+  community.general.ufw:
+    rule: allow
+    port: "{{ ansible_port | default(22) }}"
+    proto: tcp
+  when: harden_ufw | bool
+
+- name: UFW | Allow extra TCP ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop: "{{ harden_ufw_allowed_tcp_ports }}"
+  when: harden_ufw | bool
+
+- name: UFW | Allow extra UDP ports
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: udp
+  loop: "{{ harden_ufw_allowed_udp_ports }}"
+  when: harden_ufw | bool
+
+- name: UFW | Default deny incoming and enable
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+  when: harden_ufw | bool
+
+- name: UFW | Default allow outgoing
+  community.general.ufw:
+    policy: allow
+    direction: outgoing
+  when: harden_ufw | bool
+
+# ---------------------------------------------------------------------------
+# fail2ban
+# ---------------------------------------------------------------------------
+- name: fail2ban | Install
+  apt:
+    name: fail2ban
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: harden_fail2ban | bool
+
+- name: fail2ban | Configure sshd jail
+  template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  when: harden_fail2ban | bool
+  notify: Restart fail2ban
+
+- name: fail2ban | Ensure service is running
+  service:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: harden_fail2ban | bool
+
+# ---------------------------------------------------------------------------
+# Automatic security updates
+# ---------------------------------------------------------------------------
+- name: unattended-upgrades | Install
+  apt:
+    name: unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: harden_unattended_upgrades | bool
+
+- name: unattended-upgrades | Enable periodic update/upgrade
+  template:
+    src: 20auto-upgrades.j2
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: '0644'
+  when: harden_unattended_upgrades | bool
+
+- name: unattended-upgrades | Configure automatic reboot
+  template:
+    src: 52unattended-upgrades-local.j2
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-local
+    owner: root
+    group: root
+    mode: '0644'
+  when: harden_unattended_upgrades | bool
+
+# ---------------------------------------------------------------------------
+# Kernel / network sysctl. Intentionally does NOT touch ip_forward — Docker
+# manages that itself, and clobbering it would break container networking.
+# ---------------------------------------------------------------------------
+- name: sysctl | Deploy network hardening
+  template:
+    src: 99-sysctl-hardening.conf.j2
+    dest: /etc/sysctl.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: harden_sysctl | bool
+  notify: Reload sysctl

@@ -1,6 +1,21 @@
-[servers]
-# Replace with your server details
-# 192.168.1.100 ansible_user=root ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_python_interpreter=/usr/bin/python3
+# Copy to inventory/hosts.ini (gitignored) and fill in your real hosts.
+#
+# Group several servers under a parent group so they share group_vars, while
+# each host keeps its own leaf group for per-host secrets (e.g. sudo password):
+#
+#   [servers:children]        <- parent; group_vars/servers.yml applies to all
+#   web1
+#   web2
+#
+#   [web1]                    <- leaf; group_vars/web1.yml holds web1's secrets
+#   <IP>:22 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_python_interpreter=/usr/bin/python3
+#
+#   [web2]
+#   <IP>:22 ansible_user=ubuntu ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_python_interpreter=/usr/bin/python3
+
+[servers:children]
+# web1
+# web2
 
 [openwrt]
 # OpenWrt routers — Python is NOT pre-installed, so we use /usr/bin/python3 from opkg

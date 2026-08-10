@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[DEFAULT]
+bantime  = {{ harden_fail2ban_bantime }}
+findtime = {{ harden_fail2ban_findtime }}
+maxretry = {{ harden_fail2ban_maxretry }}
+# Ubuntu logs auth to the systemd journal, not /var/log/auth.log.
+backend  = systemd
+
+[sshd]
+enabled = true
+port    = {{ ansible_port | default('ssh') }}

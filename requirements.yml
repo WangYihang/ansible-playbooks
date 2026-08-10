@@ -1,0 +1,5 @@
+---
+# Install with: ansible-galaxy collection install -r requirements.yml
+collections:
+  # provides community.general.ufw, used by the hardening role
+  - name: community.general
