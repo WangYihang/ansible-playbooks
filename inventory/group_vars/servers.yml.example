@@ -15,3 +15,7 @@ docker_apt_codename: noble
 # harden_sysctl: true
 # Extra firewall ports to open (SSH is always allowed automatically):
 # harden_ufw_allowed_tcp_ports: [80, 443]
+
+# --- proxychains (optional; /etc/proxychains4.conf is only written when set) ---
+# proxychains_proxies:
+#   - { type: socks5, host: 127.0.0.1, port: 1080 }

@@ -1,0 +1,6 @@
+---
+- name: Configure proxychains
+  hosts: all
+  become: true
+  roles:
+    - proxychains

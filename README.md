@@ -46,6 +46,7 @@ Drop `-K` once you've stored the sudo password in Vault (see [Inventory & secret
 | `tailscale.yml` | Tailscale VPN with IP forwarding & exit node support |
 | `zsh.yml` | Zsh + Oh My Zsh, configurable theme |
 | `gh.yml` | GitHub CLI (`gh`) from GitHub's official apt repo |
+| `proxychains.yml` | proxychains-ng; writes `/etc/proxychains4.conf` from `proxychains_proxies` (only when at least one proxy is set) |
 
 ### Language Version Managers
 

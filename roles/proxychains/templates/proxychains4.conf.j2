@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+# proxychains-ng configuration — managed by the 'proxychains' role.
+
+{{ proxychains_chain_type }}
+{% if proxychains_quiet_mode %}
+quiet_mode
+{% endif %}
+{% if proxychains_proxy_dns %}
+proxy_dns
+{% endif %}
+remote_dns_subnet {{ proxychains_remote_dns_subnet }}
+tcp_read_time_out {{ proxychains_tcp_read_time_out }}
+tcp_connect_time_out {{ proxychains_tcp_connect_time_out }}
+
+[ProxyList]
+{% for p in proxychains_proxies %}
+{{ p.type }} {{ p.host }} {{ p.port }}{% if p.user is defined and p.user %} {{ p.user }} {{ p.pass }}{% endif %}
+{% endfor %}

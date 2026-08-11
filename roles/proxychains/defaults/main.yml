@@ -1,0 +1,16 @@
+---
+# proxychains-ng behaviour. The config file is only written when at least one
+# proxy is defined in proxychains_proxies, so adding this role to a host with no
+# proxies configured is a safe no-op (it just ensures the package is present).
+proxychains_chain_type: dynamic_chain   # strict_chain | dynamic_chain | random_chain | round_robin_chain
+proxychains_quiet_mode: false
+proxychains_proxy_dns: true
+proxychains_remote_dns_subnet: 224
+proxychains_tcp_read_time_out: 15000
+proxychains_tcp_connect_time_out: 8000
+
+# Proxies, applied in the order listed. Each item:
+#   { type: socks5, host: 127.0.0.1, port: 1080 }              # anonymous
+#   { type: http,   host: 10.0.0.1,  port: 8080, user: u, pass: p }
+# type is one of: http, socks4, socks5, raw
+proxychains_proxies: []
