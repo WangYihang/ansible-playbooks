@@ -1,0 +1,6 @@
+---
+- name: Install wireguard-tools
+  hosts: all
+  become: true
+  roles:
+    - wireguard
