@@ -6,3 +6,14 @@ docker_add_user_to_group: false  # add target_user to docker group (run docker w
 # Docker's repo lags behind brand-new Ubuntu versions (e.g. 26.04), so override
 # this per-host/group to the latest published LTS codename when needed.
 docker_apt_codename: "{{ ansible_facts['distribution_release'] }}"
+
+# Base URL of Docker's apt repository. Override with a regional mirror, e.g.
+# Aliyun for mainland China:
+#   docker_apt_base_url: https://mirrors.aliyun.com/docker-ce/linux/ubuntu
+docker_apt_base_url: "https://download.docker.com/linux/ubuntu"
+
+# Optional registry mirrors for image pulls, written to /etc/docker/daemon.json.
+# Only applied when non-empty; the file is managed as a whole.
+#   docker_registry_mirrors:
+#     - https://<id>.mirror.aliyuncs.com
+docker_registry_mirrors: [""]

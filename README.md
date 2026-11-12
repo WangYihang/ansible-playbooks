@@ -77,6 +77,8 @@ uvx --from ansible-core ansible-playbook playbooks/uv.yml -e 'uv_python_version=
 uvx --from ansible-core ansible-playbook playbooks/gvm.yml -e 'go_version=go1.22.4'
 uvx --from ansible-core ansible-playbook playbooks/zsh.yml -e 'zsh_theme=agnoster'
 uvx --from ansible-core ansible-playbook playbooks/docker.yml -e 'docker_add_user_to_group=true'
+# Install Docker from a regional mirror (e.g. Aliyun in mainland China)
+uvx --from ansible-core ansible-playbook playbooks/docker.yml -e 'docker_apt_base_url=https://mirrors.aliyun.com/docker-ce/linux/ubuntu'
 uvx --from ansible-core ansible-playbook playbooks/tailscale.yml -e 'tailscale_auth_key=tskey-auth-xxxxx'
 ```
 

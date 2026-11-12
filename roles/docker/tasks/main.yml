@@ -5,9 +5,9 @@
     state: directory
     mode: '0755'
 
-- name: Add Docker's official GPG key
+- name: Add Docker apt GPG key
   get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
+    url: "{{ docker_apt_base_url }}/gpg"
     dest: /etc/apt/keyrings/docker.asc
     mode: '0644'
 
@@ -25,7 +25,7 @@
   deb822_repository:
     name: docker
     types: [deb]
-    uris: ["https://download.docker.com/linux/ubuntu"]
+    uris: ["{{ docker_apt_base_url }}"]
     suites: ["{{ docker_apt_codename }}"]
     components: [stable]
     architectures: [amd64]
@@ -57,6 +57,14 @@
       - apparmor-utils
     state: absent
   when: ansible_facts['virtualization_type'] == 'lxc'
+  notify: Restart Docker
+
+- name: Configure Docker registry mirrors
+  copy:
+    dest: /etc/docker/daemon.json
+    content: "{{ {'registry-mirrors': docker_registry_mirrors} | to_nice_json }}\n"
+    mode: '0644'
+  when: docker_registry_mirrors | length > 0
   notify: Restart Docker
 
 - name: Ensure Docker service is running
