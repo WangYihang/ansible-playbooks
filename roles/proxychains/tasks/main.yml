@@ -1,7 +1,7 @@
 ---
-- name: Install proxychains-ng
+- name: Install proxychains4
   apt:
-    name: proxychains-ng
+    name: proxychains4
     state: present
     update_cache: true
     cache_valid_time: 3600
