@@ -42,6 +42,7 @@ Drop `-K` once you've stored the sudo password in Vault (see [Inventory & secret
 | `common.yml` | Apt update/upgrade, essential packages (`git`, `curl`, `vim`, `neovim`, `tmux`, `ufw`, …), cleanup |
 | `hardening.yml` | SSH hardening (key-only, no root), ufw firewall, fail2ban, automatic security updates, sysctl network hardening |
 | `docker.yml` | Docker CE + CLI + Compose + Buildx (handles LXC AppArmor) |
+| `hostname.yml` | Sets each host's hostname to its inventory name; persists it across reboots via cloud-init |
 | `caddy.yml` | Caddy web server / reverse proxy |
 | `tailscale.yml` | Tailscale VPN with IP forwarding & exit node support |
 | `zsh.yml` | Zsh + Oh My Zsh, configurable theme |

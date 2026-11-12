@@ -1,0 +1,30 @@
+---
+# Set each host's hostname to its inventory name and keep it across reboots.
+# Usage: ansible-playbook playbooks/hostname.yml --limit tpctf
+- name: Set hostname
+  hosts: all
+  become: true
+  tasks:
+    - name: Check for cloud-init
+      ansible.builtin.stat:
+        path: /etc/cloud
+      register: cloud_init_dir
+
+    - name: Preserve hostname across reboots (cloud-init)
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud.cfg.d/99-preserve-hostname.cfg
+        content: "preserve_hostname: true\n"
+        mode: '0644'
+      when: cloud_init_dir.stat.isdir | default(false)
+
+    - name: Set hostname to the inventory name
+      ansible.builtin.hostname:
+        name: "{{ inventory_hostname }}"
+        use: systemd
+
+    - name: Point 127.0.1.1 at the hostname in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s'
+        line: "127.0.1.1 {{ inventory_hostname }}"
+        state: present
